@@ -27,7 +27,7 @@ class XcpSpiHandler:
         if len(command) < 8:
             command += [0x00] * (8 - len(command))
 
-        print(f"[SPI] TX → {[hex(x) for x in command]}")
+        print(f"[SPI] TX ? {[hex(x) for x in command]}")
         self.spi.xfer2(command)
         time.sleep(0.001)
 
@@ -35,7 +35,7 @@ class XcpSpiHandler:
         self.spi.xfer2(dummy)        
         response = self.spi.xfer2(dummy)
 
-        print(f"[SPI] RX ← {[hex(x) for x in response]}")
+        print(f"[SPI] RX ? {[hex(x) for x in response]}")
 
         return response
 
@@ -45,7 +45,7 @@ class XcpSpiHandler:
         addr_low  = address & 0xFF
         set_mta_cmd = [0xF6, 0x00, 0x00, 0x00, addr_low, 0x00, 0x00, addr_high]
 
-        print(f"[SPI] SET_MTA TX → {[hex(x) for x in set_mta_cmd]}")
+        print(f"[SPI] SET_MTA TX ? {[hex(x) for x in set_mta_cmd]}")
 
         resp1=self.spi.xfer2(set_mta_cmd)
         print(f"{[hex(x) for x in resp1]}")
@@ -54,10 +54,8 @@ class XcpSpiHandler:
         self.spi.xfer2(dummy)
         resp=self.spi.xfer2(dummy)
         
-        # Print RX
-        print(f"[SPI] SET_MTA RX ← {[hex(x) for x in resp]}")
+        print(f"[SPI] SET_MTA RX ? {[hex(x) for x in resp]}")
 
-        # Check response
         if resp[0] == 0xFF:
             print("[SPI] SET_MTA Success")
             return True
@@ -86,7 +84,6 @@ class XcpGatewayClient:
         self.spi_handler.disconnect()
 
     def on_message(self, ws, message):
-        """Handle incoming WebSocket messages and perform SPI operations."""
         try:
             data = json.loads(message)
             cmd = data.get("cmd")
@@ -95,25 +92,18 @@ class XcpGatewayClient:
                 print("[WS] No 'cmd' in message.")
                 return
 
-            # -----------------------------
-            # INIT COMMAND
-            # -----------------------------
             if cmd == "init":
                 con_id = data.get("con_id", "00")
                 ws.send(json.dumps({"res": "init", "con_id": con_id}))
                 print(f"[WS] Init acknowledged (con_id={con_id})")
 
-            # -----------------------------
-            # MEMORY READ COMMAND
-            # -----------------------------
             elif cmd == "mem_read":
                 addr_str = data.get("add")
                 size_str = data.get("size", "1")
 
                 address = int(addr_str, 16)
-                # Parse size as hex or decimal, then map to number of bytes
                 size = int(size_str, 16) if "0x" in size_str else int(size_str)
-                # Map bit size to number of bytes
+
                 if size == 8:
                     num_elements = 1
                 elif size == 16:
@@ -121,11 +111,10 @@ class XcpGatewayClient:
                 elif size == 32:
                     num_elements = 4
                 else:
-                    num_elements = size  # Fallback for other sizes
+                    num_elements = size
 
-                print(f"[WS] mem_read → addr={addr_str}, size={size}, num_elements={num_elements}")
+                print(f"[WS] mem_read ? addr={addr_str}, size={size}, num_elements={num_elements}")
 
-                # Send SET_MTA once and check response
                 if not self.spi_handler.send_set_mta(address):
                     ws.send(json.dumps({
                         "res": "mem_read",
@@ -135,51 +124,21 @@ class XcpGatewayClient:
                     }))
                     return
 
-                # Construct SPI SHORT_UPLOAD command (0xF5)
                 addr_high = (address >> 24) & 0xFF
                 addr_low = address & 0xFF
                 spi_cmd = [0xF5, num_elements, 0x00, 0x00, addr_low, 0x00, 0x00, addr_high]
                 spi_resp = self.spi_handler.send_command(spi_cmd)
 
-                # Extract the requested number of bytes from response
-                if spi_resp[0] == 0xFF:  # Check for successful response
-                    # Add length checks for safety
+                if spi_resp[0] == 0xFF:
                     if size == 8:
-                        if len(spi_resp) < 2:
-                            ws.send(json.dumps({
-                                "res": "mem_read",
-                                "add": addr_str,
-                                "value": None,
-                                "error": "Insufficient response length for 8-bit"
-                            }))
-                            print("[WS] Insufficient response length for 8-bit")
-                            return
                         value = spi_resp[1]
                     elif size == 16:
-                        if len(spi_resp) < 3:
-                            ws.send(json.dumps({
-                                "res": "mem_read",
-                                "add": addr_str,
-                                "value": None,
-                                "error": "Insufficient response length for 16-bit"
-                            }))
-                            print("[WS] Insufficient response length for 16-bit")
-                            return
-                        value = (spi_resp[2] << 8) | spi_resp[1]  # Little-endian 16-bit
+                        value = (spi_resp[2] << 8) | spi_resp[1]
                     elif size == 32:
-                        if len(spi_resp) < 5:
-                            ws.send(json.dumps({
-                                "res": "mem_read",
-                                "add": addr_str,
-                                "value": None,
-                                "error": "Insufficient response length for 32-bit"
-                            }))
-                            print("[WS] Insufficient response length for 32-bit")
-                            return
-                        value = (spi_resp[4] << 24) | (spi_resp[3] << 16) | (spi_resp[2] << 8) | spi_resp[1]  # Little-endian 32-bit
+                        value = (spi_resp[4] << 24) | (spi_resp[3] << 16) | (spi_resp[2] << 8) | spi_resp[1]
                     else:
-                        value = 0  # Fallback for unsupported sizes
-                    # Format as binary string with correct bit-width
+                        value = 0
+
                     binary_value = f"0b{value:0{size}b}"
                     ws.send(json.dumps({
                         "res": "mem_read",
@@ -196,9 +155,6 @@ class XcpGatewayClient:
                     }))
                     print(f"[WS] SHORT_UPLOAD failed: {[hex(x) for x in spi_resp]}")
 
-            # -----------------------------
-            # MEMORY WRITE COMMAND
-            # -----------------------------
             elif cmd == "mem_write":
                 addr_str = data.get("add")
                 data_bits = data.get("data", "0b00000000")
@@ -206,11 +162,10 @@ class XcpGatewayClient:
 
                 address = int(addr_str, 16)
                 size = int(size_str, 16) if "0x" in size_str else int(size_str)
-                data_byte = int(data_bits, 2)
+                data_value = int(data_bits, 2)
 
-                print(f"[WS] mem_write → addr={addr_str}, data={data_bits}")
+                print(f"[WS] mem_write ? addr={addr_str}, data={data_bits}")
 
-                # Send SET_MTA once and check response
                 if not self.spi_handler.send_set_mta(address):
                     ws.send(json.dumps({
                         "res": "mem_write",
@@ -219,8 +174,19 @@ class XcpGatewayClient:
                     }))
                     return
 
-                # Construct SPI write command (example)
-                spi_cmd = [0xF2, data_byte, size, 0x00, 0x00, 0x00, 0x00, 0x00]
+                if size == 8:
+                    xcp_len = 1
+                elif size == 16:
+                    xcp_len = 2
+                elif size == 32:
+                    xcp_len = 4
+                else:
+                    xcp_len = 1
+
+                data_bytes = list(data_value.to_bytes(xcp_len, byteorder="little"))
+
+                spi_cmd = [0xF0, xcp_len] + data_bytes
+
                 spi_resp = self.spi_handler.send_command(spi_cmd)
 
                 write_status = "success" if spi_resp[0] == 0xFF else "fail"
