@@ -339,9 +339,3 @@ MIT License
 
 ⭐ Designed to be used together with the **XCP SPI WebSocket Gateway** project.
 
-
----
-
-## 📄 License
-
-MIT License
