@@ -137,3 +137,79 @@ We welcome:
 
 **Precision control for embedded systems — monitor, tune, update, repeat.**  
 *No JTAG. No serial. Just WebSocket magic.*
+
+
+# XCP SPI WebSocket Gateway
+
+A lightweight **XCP master gateway** running on a **Raspberry Pi** that enables **remote, non-intrusive runtime memory read/write** on embedded targets (e.g., STM32) over **SPI**, controlled via **WebSocket**.
+
+---
+
+## ✨ Key Features
+
+* WebSocket-based remote access (works over ngrok)
+* SPI-based XCP master implementation
+* Runtime memory **read / write** (8, 16, 32-bit)
+* Uses XCP commands: `SET_MTA`, `SHORT_UPLOAD`, `DOWNLOAD`
+* Suitable for debugging, calibration, and FYP projects
+
+---
+
+## 🧩 Architecture
+
+```
+Web Client → WebSocket → Raspberry Pi (Gateway) → SPI/XCP → STM32 Target
+```
+
+---
+
+## 🛠 Requirements
+
+**Hardware**
+
+* Raspberry Pi with SPI enabled
+* XCP-enabled embedded target (STM32)
+
+**Software**
+
+* Python 3.8+
+* `websocket-client`, `spidev`
+
+```bash
+pip install websocket-client spidev
+```
+
+---
+
+## 📡 Supported Commands
+
+### Init
+
+```json
+{ "cmd": "init", "con_id": "01" }
+```
+
+### Memory Read
+
+```json
+{ "cmd": "mem_read", "add": "0x20000050", "size": "32" }
+```
+
+### Memory Write
+
+```json
+{ "cmd": "mem_write", "add": "0x20000050", "size": "8", "data": "0b00010101" }
+```
+
+---
+
+## 🔐 Notes
+
+* Use valid memory addresses only
+* Intended for development and debugging, not production
+
+---
+
+## 📄 License
+
+MIT License
