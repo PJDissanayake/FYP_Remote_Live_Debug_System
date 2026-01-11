@@ -252,12 +252,14 @@ STM32 / Embedded Target (This Project)
 ## 📂 Project Structure
 
 ```
-.
-├── xcp.c        # Core XCP protocol handling
-├── xcp.h        # XCP definitions and APIs
-├── spi.c        # SPI transport layer
-├── spi.h        # SPI interface definitions
-├── main.c       # Application entry point
+├── Inc/
+│    ├── xcp.h        # XCP definitions and APIs
+│    ├── spi.h        # SPI interface definitions
+├── src/
+    ├── xcp.c        # Core XCP protocol handling
+    ├── spi.c        # SPI transport layer
+    ├── main.c       # Application entry point
+
 ```
 
 ---
