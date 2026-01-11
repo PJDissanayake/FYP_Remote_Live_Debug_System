@@ -138,8 +138,8 @@ We welcome:
 **Precision control for embedded systems — monitor, tune, update, repeat.**  
 *No JTAG. No serial. Just WebSocket magic.*
 
-
-
+```
+```
 
 
 # XCP SPI WebSocket Gateway
@@ -212,8 +212,8 @@ pip install websocket-client spidev
 * Intended for development and debugging, not production
 
 
-
-
+```
+```
 
 
 # XCP Slave (SPI) – Embedded Target
