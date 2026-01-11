@@ -142,7 +142,7 @@ We welcome:
 ```
 
 
-# XCP SPI WebSocket Gateway
+#  WebSocket Gateway & XCP Master
 
 A lightweight **XCP master gateway** running on a **Raspberry Pi** that enables **remote, non-intrusive runtime memory read/write** on embedded targets (e.g., STM32) over **SPI**, controlled via **WebSocket**.
 
@@ -237,9 +237,9 @@ It is designed to work with an external **XCP Master / Gateway** (such as a Rasp
 ## 🧩 System Architecture
 
 ```
-XCP Master (PC / Cloud / Raspberry Pi)
+Remote Module (Raspberry Pi / PC)
         │
-        │ WebSocket / SPI
+        │ WebSocket 
         ▼
 Raspberry Pi (Gateway)
         │ SPI (XCP DTOs)
@@ -325,8 +325,7 @@ STM32 / Embedded Target (This Project)
 
 ## 📌 Limitations
 
-* Block upload/download not implemented
-* No authentication or memory protection layer
+* No authentication, limited memory protection layer
 * Single-master operation
 
 ---
